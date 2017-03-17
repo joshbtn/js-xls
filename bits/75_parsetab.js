@@ -1,5 +1,9 @@
+/* [MS-XLS] 2.3 Record Enumeration */
 var RecordEnum = {
+	0x0003: { n:"BIFF2NUM", f:parse_BIFF2NUM },
+	0x0004: { n:"BIFF2STR", f:parse_BIFF2STR },
 	0x0006: { n:"Formula", f:parse_Formula },
+	0x0009: { n:'BOF', f:parse_BOF },
 	0x000a: { n:'EOF', f:parse_EOF },
 	0x000c: { n:"CalcCount", f:parse_CalcCount },
 	0x000d: { n:"CalcMode", f:parse_CalcMode },
@@ -189,6 +193,7 @@ var RecordEnum = {
 	0x0203: { n:"Number", f:parse_Number },
 	0x0204: { n:"Label", f:parse_Label },
 	0x0205: { n:"BoolErr", f:parse_BoolErr },
+	0x0206: { n:"Formula", f:parse_Formula },
 	0x0207: { n:"String", f:parse_String },
 	0x0208: { n:'Row', f:parse_Row },
 	0x020b: { n:"Index", f:parse_Index },
@@ -198,6 +203,7 @@ var RecordEnum = {
 	0x023e: { n:"Window2", f:parse_Window2 },
 	0x027e: { n:"RK", f:parse_RK },
 	0x0293: { n:"Style", f:parse_Style },
+	0x0406: { n:"Formula", f:parse_Formula },
 	0x0418: { n:"BigName", f:parse_BigName },
 	0x041e: { n:"Format", f:parse_Format },
 	0x043c: { n:"ContinueBigName", f:parse_ContinueBigName },
@@ -252,8 +258,8 @@ var RecordEnum = {
 	0x0879: { n:"CondFmt12", f:parse_CondFmt12 },
 	0x087a: { n:"CF12", f:parse_CF12 },
 	0x087b: { n:"CFEx", f:parse_CFEx },
-	0x087c: { n:"XFCRC", f:parse_XFCRC },
-	0x087d: { n:"XFExt", f:parse_XFExt },
+	0x087c: { n:"XFCRC", f:parse_XFCRC, r:12 },
+	0x087d: { n:"XFExt", f:parse_XFExt, r:12 },
 	0x087e: { n:"AutoFilter12", f:parse_AutoFilter12 },
 	0x087f: { n:"ContinueFrt12", f:parse_ContinueFrt12 },
 	0x0884: { n:"MDTInfo", f:parse_MDTInfo },
@@ -273,7 +279,7 @@ var RecordEnum = {
 	0x0893: { n:"NamePublish", f:parse_NamePublish },
 	0x0894: { n:"NameCmt", f:parse_NameCmt },
 	0x0895: { n:"SortData", f:parse_SortData },
-	0x0896: { n:"Theme", f:parse_Theme },
+	0x0896: { n:"Theme", f:parse_Theme, r:12 },
 	0x0897: { n:"GUIDTypeLib", f:parse_GUIDTypeLib },
 	0x0898: { n:"FnGrp12", f:parse_FnGrp12 },
 	0x0899: { n:"NameFnGrp12", f:parse_NameFnGrp12 },
@@ -354,7 +360,21 @@ var RecordEnum = {
 	0x1068: { n:"Fbi2", f:parse_Fbi2 },
 
 	/* These are specified in an older version of the spec */
+	0x0000: { n:"Dimensions", f:parse_Dimensions },
+	0x0002: { n:"BIFF2INT", f:parse_BIFF2INT },
+	0x0005: { n:"BoolErr", f:parse_BoolErr },
+	0x0007: { n:"String", f:parse_BIFF2STRING },
+	0x0008: { n:"BIFF2ROW", f:parsenoop },
+	0x000b: { n:"Index", f:parse_Index },
+	0x001e: { n:"BIFF2FORMAT", f:parse_BIFF2Format },
+	0x001f: { n:"BIFF2FMTCNT", f:parsenoop }, /* 16-bit cnt of BIFF2FORMAT records */
 	0x0016: { n:"ExternCount", f:parsenoop },
+	0x0021: { n:"Array", f:parse_Array },
+	0x0025: { n:"DefaultRowHeight", f:parse_DefaultRowHeight },
+	0x0032: { n:"BIFF2FONTXTRA", f:parse_BIFF2FONTXTRA },
+	0x003e: { n:"BIFF2WINDOW2", f:parsenoop },
+	0x0045: { n:"BIFF2FONTCLR", f:parsenoop },
+	0x0056: { n:"BIFF4FMTCNT", f:parsenoop }, /* 16-bit cnt, similar to BIFF2 */
 	0x007e: { n:"RK", f:parsenoop }, /* Not necessarily same as 0x027e */
 	0x007f: { n:"ImData", f:parsenoop },
 	0x0087: { n:"Addin", f:parsenoop },
@@ -369,15 +389,16 @@ var RecordEnum = {
 	0x00bc: { n:"ShrFmla", f:parsenoop }, /* Not necessarily same as 0x04bc */
 	0x00c2: { n:"AddMenu", f:parsenoop },
 	0x00c3: { n:"DelMenu", f:parsenoop },
-	0x00d6: { n:"RString", f:parsenoop },
+	0x00d6: { n:"RString", f:parse_RString },
 	0x00df: { n:"UDDesc", f:parsenoop },
 	0x00ea: { n:"TabIdConf", f:parsenoop },
 	0x0162: { n:"XL5Modify", f:parsenoop },
 	0x01a5: { n:"FileSharing2", f:parsenoop },
-	0x0218: { n:"Name", f:parsenoop },
+	0x0209: { n:'BOF', f:parse_BOF },
+	0x0218: { n:"Lbl", f:parse_Lbl },
 	0x0223: { n:"ExternName", f:parse_ExternName },
 	0x0231: { n:"Font", f:parsenoop },
-	0x0406: { n:"Formula", f:parse_Formula },
+	0x0409: { n:'BOF', f:parse_BOF },
 	0x086d: { n:"FeatInfo", f:parsenoop },
 	0x0873: { n:"FeatInfo11", f:parsenoop },
 	0x0881: { n:"SXAddl12", f:parsenoop },
@@ -394,6 +415,10 @@ var RecordEnum = {
 	0x08ca: { n:"MkrExt", f:parsenoop },
 	0x08cb: { n:"CrtCoopt", f:parsenoop },
 
-	0x0000: {}
+	0x0043: { n:"BIFF2XF", f:parsenoop },
+	0x0243: { n:"BIFF3XF", f:parsenoop },
+	0x0443: { n:"BIFF4XF", f:parsenoop },
+
+	0x7262: {}
 };
 
